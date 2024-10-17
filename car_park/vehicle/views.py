@@ -4,16 +4,31 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .models import Vehicle, Enterprise, Driver, VehicleDriverAssignment
-from .serializers import VehicleSerializer, EnterpriseSerializer, DriverSerializer
+from .serializers import VehicleSerializer, EnterpriseSerializer, DriverSerializer, VehicleDriverAssignmentSerializer
+
+
+class ActiveVehicleDriverListAPIView(generics.ListAPIView):
+    queryset = VehicleDriverAssignment.objects.filter(is_active=True)
+    serializer_class = VehicleDriverAssignmentSerializer
 
 
 class VehicleListAPIView(generics.ListAPIView):
-    queryset = Vehicle.objects.all()
     serializer_class = VehicleSerializer
+
+    def get_queryset(self):
+        queryset = Vehicle.objects.all()
+
+        active_only = self.request.query_params.get('active_only')
+        if active_only == 'true':
+            queryset = Vehicle.objects.filter(vehicledriverassignment__is_active=True).prefetch_related(
+                'vehicledriverassignment_set').distinct()
+        return queryset
+
 
 class EnterpriseListAPIView(generics.ListAPIView):
     queryset = Enterprise.objects.all()
     serializer_class = EnterpriseSerializer
+
 
 class DriverListAPIView(generics.ListAPIView):
     queryset = Driver.objects.all()
