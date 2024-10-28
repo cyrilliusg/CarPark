@@ -4,16 +4,28 @@ from .models import VehicleDriverAssignment, Vehicle, Driver, Enterprise
 
 
 class VehicleSerializer(serializers.ModelSerializer):
-    active_driver = serializers.SerializerMethodField()
+    active_driver_id = serializers.SerializerMethodField()
 
     class Meta:
         model = Vehicle
-        fields = '__all__'
+        fields = [
+            'id',
+            'vin',
+            'price',
+            'release_year',
+            'mileage',
+            'color',
+            'transmission_type',
+            'configuration',
+            'enterprise',
+            'drivers',
+            'active_driver_id',  # Добавили поле здесь
+        ]
 
-    def get_active_driver(self, obj):
+    def get_active_driver_id(self, obj):
         assignment = VehicleDriverAssignment.objects.filter(vehicle=obj, is_active=True).first()
         if assignment:
-            return DriverSerializer(assignment.driver).data
+            return assignment.driver.id
         return None
 
 

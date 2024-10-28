@@ -1,3 +1,4 @@
+from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator
 from django.db import models
@@ -67,7 +68,6 @@ class Driver(models.Model):
 
 
 class Vehicle(models.Model):
-    id = models.AutoField(primary_key=True)
     vin = models.CharField(max_length=17, unique=True, verbose_name='VIN')
     price = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(0.0)],
                                 verbose_name='Стоимость')
@@ -145,3 +145,11 @@ class VehicleDriverAssignment(models.Model):
 
     def __str__(self):
         return f"{self.driver.name} assigned to {self.vehicle}"
+
+
+class Manager(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, verbose_name='Пользователь')
+    enterprises = models.ManyToManyField('Enterprise', related_name='managers', verbose_name='Предприятия')
+
+    def __str__(self):
+        return self.user.get_full_name() or self.user.username

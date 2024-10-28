@@ -2,8 +2,10 @@ from django.contrib import admin
 
 # Register your models here.
 
-from .models import Vehicle, Brand, Model, Configuration, Enterprise, Driver, VehicleDriverAssignment
+from .models import Vehicle, Brand, Model, Configuration, Enterprise, Driver, VehicleDriverAssignment, Manager
 
+from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
+from django.contrib.auth.models import User
 
 @admin.register(Brand)
 class BrandAdmin(admin.ModelAdmin):
@@ -60,3 +62,25 @@ class DriverAdmin(admin.ModelAdmin):
 class VehicleDriverAssignmentAdmin(admin.ModelAdmin):
     list_display = ('id', 'vehicle', 'driver', 'is_active')
     list_filter = ('is_active', 'driver', 'vehicle')
+
+
+@admin.register(Manager)
+class ManagerAdmin(admin.ModelAdmin):
+    list_display = ('user',)
+    filter_horizontal = ('enterprises',)
+
+
+
+
+class ManagerInline(admin.StackedInline):
+    model = Manager
+    can_delete = False
+    verbose_name_plural = 'Менеджер'
+    filter_horizontal = ('enterprises',)
+
+class UserAdmin(BaseUserAdmin):
+    inlines = (ManagerInline,)
+
+# Перерегистрируем модель User
+admin.site.unregister(User)
+admin.site.register(User, UserAdmin)
