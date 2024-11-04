@@ -1,5 +1,7 @@
 # views.py
 from django.shortcuts import get_object_or_404
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_protect
 from rest_framework import generics, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -9,6 +11,7 @@ from .models import Vehicle, Enterprise, Driver, VehicleDriverAssignment, Manage
 from .serializers import VehicleSerializer, EnterpriseSerializer, DriverSerializer, VehicleDriverAssignmentSerializer
 
 
+@method_decorator(csrf_protect, name='dispatch')
 class ActiveVehicleDriverListAPIView(generics.ListAPIView):
     serializer_class = VehicleDriverAssignmentSerializer
     permission_classes = [IsAuthenticated]
@@ -23,6 +26,7 @@ class ActiveVehicleDriverListAPIView(generics.ListAPIView):
         )
 
 
+@method_decorator(csrf_protect, name='dispatch')
 class VehicleListAPIView(generics.ListAPIView):
     serializer_class = VehicleSerializer
     permission_classes = [IsAuthenticated]
@@ -40,6 +44,7 @@ class VehicleListAPIView(generics.ListAPIView):
         return queryset
 
 
+@method_decorator(csrf_protect, name='dispatch')
 class EnterpriseListAPIView(generics.ListAPIView):
     # queryset = Enterprise.objects.all()
     serializer_class = EnterpriseSerializer
@@ -50,6 +55,7 @@ class EnterpriseListAPIView(generics.ListAPIView):
         return manager.enterprises.all()
 
 
+@method_decorator(csrf_protect, name='dispatch')
 class DriverListAPIView(generics.ListAPIView):
     # queryset = Driver.objects.all()
     serializer_class = DriverSerializer
@@ -61,6 +67,7 @@ class DriverListAPIView(generics.ListAPIView):
         return Driver.objects.filter(enterprise__in=enterprises)
 
 
+@method_decorator(csrf_protect, name='dispatch')
 class ActiveDriverAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
