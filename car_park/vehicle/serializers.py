@@ -5,6 +5,7 @@ from .models import VehicleDriverAssignment, Vehicle, Driver, Enterprise
 
 class VehicleSerializer(serializers.ModelSerializer):
     active_driver_id = serializers.SerializerMethodField()
+    id = serializers.IntegerField(read_only=True)
 
     class Meta:
         model = Vehicle
@@ -30,12 +31,16 @@ class VehicleSerializer(serializers.ModelSerializer):
 
 
 class EnterpriseSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(read_only=True)
+
     class Meta:
         model = Enterprise
         fields = '__all__'
 
 
 class DriverSerializer(serializers.ModelSerializer):
+    vehicles = VehicleSerializer(many=True, read_only=True)
+
     class Meta:
         model = Driver
         fields = ['id', 'name', 'salary', 'enterprise', 'vehicles']
