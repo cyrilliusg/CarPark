@@ -8,6 +8,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.exceptions import PermissionDenied
 from .models import Vehicle, Enterprise, Driver, VehicleDriverAssignment, Manager
+from .pagination import CustomPageNumberPagination
 from .serializers import VehicleSerializer, EnterpriseSerializer, DriverSerializer, VehicleDriverAssignmentSerializer
 
 from django.contrib.auth import authenticate, login
@@ -35,6 +36,7 @@ class ActiveVehicleDriverListAPIView(generics.ListAPIView):
 class VehicleListCreateAPIView(generics.ListCreateAPIView):
     serializer_class = VehicleSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = CustomPageNumberPagination  # Указываем кастомный пагинатор
 
     def get_queryset(self):
         manager = get_object_or_404(Manager, user=self.request.user)
@@ -42,10 +44,10 @@ class VehicleListCreateAPIView(generics.ListCreateAPIView):
 
         queryset = Vehicle.objects.filter(enterprise__in=enterprises)
 
+        # Фильтр активных транспортных средств
         active_only = self.request.query_params.get('active_only')
         if active_only == 'true':
-            queryset = queryset.filter(vehicledriverassignment__is_active=True).prefetch_related(
-                'vehicledriverassignment_set').distinct()
+            queryset = queryset.filter(vehicledriverassignment__is_active=True).distinct()
         return queryset
 
     def perform_create(self, serializer):
