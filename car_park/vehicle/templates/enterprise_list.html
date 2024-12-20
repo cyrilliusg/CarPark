@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block title %}Мои предприятия{% endblock %}
+
+{% block content %}
+<h1>Список предприятий</h1>
+<table class="table table-striped mt-3">
+    <thead>
+        <tr>
+            <th>Название</th>
+            <th>Город</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for enterprise in enterprises %}
+        <tr>
+            <td>{{ enterprise.name }}</td>
+            <td>{{ enterprise.city }}</td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="2">Нет доступных предприятий.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

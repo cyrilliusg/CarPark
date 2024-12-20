@@ -1,7 +1,9 @@
 # views.py
-from django.shortcuts import get_object_or_404
+from django.shortcuts import render, redirect, get_object_or_404
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_protect
+from django.contrib.auth.decorators import login_required
+
 from rest_framework import generics, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -210,3 +212,24 @@ def api_login(request):
             return JsonResponse({'detail': 'Invalid credentials.'}, status=status.HTTP_401_UNAUTHORIZED)
     else:
         return JsonResponse({'detail': 'Method not allowed.'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
+
+
+@csrf_protect
+def login_view(request):
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+        user = authenticate(request, username=username, password=password)
+        if user is not None:
+            login(request, user)
+            return redirect('enterprise-list-view')
+        else:
+            return render(request, 'login.html', {'error': 'Неверные учетные данные'})
+    return render(request, 'login.html')
+
+@login_required
+def enterprise_list_view(request):
+    manager = get_object_or_404(Manager, user=request.user)
+    enterprises = manager.enterprises.all()
+    return render(request, 'enterprise_list.html', {'enterprises': enterprises})
