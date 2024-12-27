@@ -1,0 +1,125 @@
+{
+  "info": {
+    "_postman_id": "d4c163b2-bda4-4055-9ba2-7b3b1fd52536",
+    "name": "Session + CSRF Example",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseURL",
+      "value": "http://127.0.0.1:8000",
+      "type": "string"
+    },
+    {
+      "key": "csrf_token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "01. Get CSRF Token",
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseURL}}/api/login/",
+          "host": [
+            "{{baseURL}}"
+          ],
+          "path": [
+            "api",
+            "login",
+            ""
+          ]
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "// 1. Сохраняем csrftoken из cookies в переменную среды Postman",
+              "const cookieHeader = pm.response.headers.get(\"Set-Cookie\");",
+              "if (cookieHeader) {",
+              "  // Ищем csrftoken=... в строке",
+              "  const match = cookieHeader.match(/csrftoken=(?<token>[^;]+)/);",
+              "  if (match && match.groups && match.groups.token) {",
+              "    pm.environment.set(\"csrf_token\", match.groups.token);",
+              "    console.log(\"CSRF token set:\", match.groups.token);",
+              "  }",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "02. Login with CSRF",
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "X-CSRFToken",
+            "value": "{{csrf_token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"username\": \"test_manager_1\",\n    \"password\": \"admin12345\"\n}"
+        },
+        "url": {
+          "raw": "{{baseURL}}/api/login/",
+          "host": [
+            "{{baseURL}}"
+          ],
+          "path": [
+            "api",
+            "login",
+            ""
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "03. Get Vehicles with Session + CSRF",
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "GET",
+        "header": [
+          {
+            "key": "X-CSRFToken",
+            "value": "{{csrf_token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseURL}}/api/vehicles/",
+          "host": [
+            "{{baseURL}}"
+          ],
+          "path": [
+            "api",
+            "vehicles",
+            ""
+          ]
+        }
+      },
+      "response": []
+    }
+  ]
+}
