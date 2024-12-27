@@ -31,8 +31,8 @@ class VehicleDriverAssignmentInline(admin.TabularInline):
 
 @admin.register(Vehicle)
 class VehicleAdmin(admin.ModelAdmin):
-    list_display = ('id', 'vin', 'configuration', 'enterprise', 'release_year', 'price', 'transmission_type')
-    list_filter = ('enterprise', 'configuration__model__brand', 'release_year', 'transmission_type')
+    list_display = ('id', 'vin', 'configuration', 'enterprise', 'release_year', 'price', 'transmission_type', 'purchase_datetime')
+    list_filter = ('enterprise', 'configuration__model__brand', 'release_year', 'transmission_type', 'purchase_datetime')
 
     def get_readonly_fields(self, request, obj=None):
         if obj and obj.drivers.exists():
@@ -42,7 +42,7 @@ class VehicleAdmin(admin.ModelAdmin):
 
 @admin.register(Enterprise)
 class EnterpriseAdmin(admin.ModelAdmin):
-    list_display = ('id', 'name', 'city')
+    list_display = ('name', 'city', 'local_timezone')
 
 
 @admin.register(Driver)
