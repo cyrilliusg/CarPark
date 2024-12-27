@@ -2,6 +2,9 @@ from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator
 from django.db import models
+from django.utils import timezone
+
+from timezone_field import TimeZoneField
 
 
 # Create your models here.
@@ -49,6 +52,11 @@ class Configuration(models.Model):
 class Enterprise(models.Model):
     name = models.CharField(max_length=100, unique=True, verbose_name='Название предприятия')
     city = models.CharField(max_length=100, verbose_name='Город')
+
+    local_timezone = TimeZoneField(
+        default='UTC',
+        verbose_name='Локальная таймзона'
+    )
 
     def __str__(self):
         return self.name
@@ -113,6 +121,10 @@ class Vehicle(models.Model):
                                      related_name='vehicles',
                                      verbose_name='Водители'
                                      )
+    purchase_datetime = models.DateTimeField(
+        default=timezone.now,  # хранится в UTC, если USE_TZ = True
+        verbose_name='Дата/время покупки (UTC)'
+    )
 
     def __str__(self):
         return f"{self.configuration.model.brand.name} {self.configuration.model.name} (VIN: {self.vin})"
