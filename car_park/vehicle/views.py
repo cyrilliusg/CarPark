@@ -3,12 +3,15 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_protect
 from django.contrib.auth.decorators import login_required
+from django.contrib import messages
 
 from rest_framework import generics, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.exceptions import PermissionDenied
+
+from .forms import EnterpriseForm
 from .models import Vehicle, Enterprise, Driver, VehicleDriverAssignment, Manager
 from .pagination import CustomPageNumberPagination
 from .serializers import VehicleSerializer, EnterpriseSerializer, DriverSerializer, VehicleDriverAssignmentSerializer
@@ -233,3 +236,17 @@ def enterprise_list_view(request):
     manager = get_object_or_404(Manager, user=request.user)
     enterprises = manager.enterprises.all()
     return render(request, 'enterprise_list.html', {'enterprises': enterprises})
+
+
+@login_required
+def enterprise_edit_view(request, pk):
+    enterprise = get_object_or_404(Enterprise, pk=pk)
+    if request.method == 'POST':
+        form = EnterpriseForm(request.POST, instance=enterprise)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Таймзона предприятия обновлена.")
+            return redirect('enterprise-list-view')
+    else:
+        form = EnterpriseForm(instance=enterprise)
+    return render(request, 'enterprise_edit.html', {'form': form, 'enterprise': enterprise})

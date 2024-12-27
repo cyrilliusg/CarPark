@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block title %}Изменение таймзоны{% endblock %}
+
+{% block content %}
+<h1>Изменение таймзоны предприятия</h1>
+<form method="post">
+    {% csrf_token %}
+    {% if form.non_field_errors %}
+      <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+    {% endif %}
+    <div class="mb-3">
+      <label class="form-label" for="id_name">Название</label>
+      {{ form.name }}
+    </div>
+    <div class="mb-3">
+      <label class="form-label" for="id_city">Город</label>
+      {{ form.city }}
+    </div>
+    <div class="mb-3">
+      <label class="form-label" for="id_local_timezone">Таймзона</label>
+      {{ form.local_timezone }}
+    </div>
+    <button type="submit" class="btn btn-primary">Сохранить</button>
+</form>
+{% endblock %}

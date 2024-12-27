@@ -11,7 +11,8 @@ from .views import (
     ActiveVehicleDriverListAPIView,
     api_login,
     login_view,
-    enterprise_list_view
+    enterprise_list_view,
+    enterprise_edit_view
 )
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
@@ -40,5 +41,6 @@ urlpatterns = [
 
     path('login/', login_view, name='login-view'),
     path('enterprises/', enterprise_list_view, name='enterprise-list-view'),
+    path('enterprises/<int:pk>/edit/', enterprise_edit_view, name='enterprise-edit'),
 
 ]
