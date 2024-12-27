@@ -6,6 +6,7 @@ from .models import VehicleDriverAssignment, Vehicle, Driver, Enterprise
 class VehicleSerializer(serializers.ModelSerializer):
     active_driver_id = serializers.SerializerMethodField()
     id = serializers.IntegerField(read_only=True)
+    purchase_datetime_local = serializers.SerializerMethodField()
 
     class Meta:
         model = Vehicle
@@ -21,6 +22,8 @@ class VehicleSerializer(serializers.ModelSerializer):
             'enterprise',
             'drivers',
             'active_driver_id',  # Добавили поле здесь
+            'purchase_datetime',  # Хранимая в UTC
+            'purchase_datetime_local',  # Конвертированная в tz предприятия
         ]
 
     def get_active_driver_id(self, obj):
@@ -28,6 +31,15 @@ class VehicleSerializer(serializers.ModelSerializer):
         if assignment:
             return assignment.driver.id
         return None
+
+    def get_purchase_datetime_local(self, obj):
+        # берем tzinfo из enterprise
+        enterprise_tz = obj.enterprise.local_timezone  # TimeZoneField => объект tzinfo
+        if not obj.purchase_datetime:
+            return None
+        # Переводим из UTC в локальную таймзону
+        # Django datetime поля обычно offset-aware (UTC).
+        return obj.purchase_datetime.astimezone(enterprise_tz).isoformat()
 
 
 class EnterpriseSerializer(serializers.ModelSerializer):
