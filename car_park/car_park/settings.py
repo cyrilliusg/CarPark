@@ -36,7 +36,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'vehicle.apps.VehicleConfig',
-    'rest_framework'
+    'rest_framework',
+    "timezone_field",  # django-timezone-field
 ]
 
 MIDDLEWARE = [
