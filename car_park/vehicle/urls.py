@@ -12,7 +12,11 @@ from .views import (
     api_login,
     login_view,
     enterprise_list_view,
-    enterprise_edit_view
+    enterprise_edit_view,
+    enterprise_vehicles_list_view,
+    vehicle_add_view,
+    vehicle_edit_view,
+    vehicle_delete_view,
 )
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
@@ -42,5 +46,10 @@ urlpatterns = [
     path('login/', login_view, name='login-view'),
     path('enterprises/', enterprise_list_view, name='enterprise-list-view'),
     path('enterprises/<int:pk>/edit/', enterprise_edit_view, name='enterprise-edit'),
+
+    path('enterprises/<int:pk>/vehicles/', enterprise_vehicles_list_view, name='enterprise-vehicles-list'),
+    path('enterprises/<int:pk>/vehicles/add/', vehicle_add_view, name='vehicle-add'),
+    path('enterprises/<int:pk>/vehicles/<int:vehicle_id>/edit/', vehicle_edit_view, name='vehicle-edit'),
+    path('enterprises/<int:pk>/vehicles/<int:vehicle_id>/delete/', vehicle_delete_view, name='vehicle-delete'),
 
 ]

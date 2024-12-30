@@ -11,7 +11,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.exceptions import PermissionDenied
 
-from .forms import EnterpriseForm
+from .forms import EnterpriseForm, VehicleForm
 from .models import Vehicle, Enterprise, Driver, VehicleDriverAssignment, Manager
 from .pagination import CustomPageNumberPagination
 from .serializers import VehicleSerializer, EnterpriseSerializer, DriverSerializer, VehicleDriverAssignmentSerializer
@@ -250,3 +250,79 @@ def enterprise_edit_view(request, pk):
     else:
         form = EnterpriseForm(instance=enterprise)
     return render(request, 'enterprise_edit.html', {'form': form, 'enterprise': enterprise})
+
+
+@login_required
+def enterprise_vehicles_list_view(request, pk):
+    # Проверяем, что предприятие доступно этому менеджеру
+    manager = get_object_or_404(Manager, user=request.user)
+    enterprise = get_object_or_404(Enterprise, pk=pk, managers=manager)
+
+    vehicles = Vehicle.objects.filter(enterprise=enterprise)
+
+    return render(request, 'enterprise_vehicles_list.html', {
+        'enterprise': enterprise,
+        'vehicles': vehicles,
+    })
+
+
+@login_required
+def vehicle_add_view(request, pk):
+    manager = get_object_or_404(Manager, user=request.user)
+    enterprise = get_object_or_404(Enterprise, pk=pk, managers=manager)
+
+    if request.method == 'POST':
+        form = VehicleForm(request.POST)
+        if form.is_valid():
+            vehicle = form.save(commit=False)
+            vehicle.enterprise = enterprise
+            vehicle.save()
+            messages.success(request, "Машина добавлена успешно.")
+            return redirect('enterprise-vehicles-list', pk=enterprise.id)
+    else:
+        form = VehicleForm()
+
+    return render(request, 'vehicle_form.html', {
+        'form': form,
+        'enterprise': enterprise,
+        'title': 'Добавление машины',
+    })
+
+@login_required
+def vehicle_edit_view(request, pk, vehicle_id):
+    manager = get_object_or_404(Manager, user=request.user)
+    enterprise = get_object_or_404(Enterprise, pk=pk, managers=manager)
+
+    vehicle = get_object_or_404(Vehicle, pk=vehicle_id, enterprise=enterprise)
+
+    if request.method == 'POST':
+        form = VehicleForm(request.POST, instance=vehicle)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Машина обновлена.")
+            return redirect('enterprise-vehicles-list', pk=enterprise.id)
+    else:
+        form = VehicleForm(instance=vehicle)
+
+    return render(request, 'vehicle_form.html', {
+        'form': form,
+        'enterprise': enterprise,
+        'title': 'Редактирование машины',
+    })
+
+@login_required
+def vehicle_delete_view(request, pk, vehicle_id):
+    manager = get_object_or_404(Manager, user=request.user)
+    enterprise = get_object_or_404(Enterprise, pk=pk, managers=manager)
+
+    vehicle = get_object_or_404(Vehicle, pk=vehicle_id, enterprise=enterprise)
+
+    if request.method == 'POST':
+        vehicle.delete()
+        messages.success(request, "Машина удалена.")
+        return redirect('enterprise-vehicles-list', pk=enterprise.id)
+
+    return render(request, 'vehicle_delete_confirm.html', {
+        'vehicle': vehicle,
+        'enterprise': enterprise
+    })

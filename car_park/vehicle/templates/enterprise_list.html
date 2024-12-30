@@ -16,7 +16,12 @@
     <tbody>
         {% for enterprise in enterprises %}
         <tr>
-            <td>{{ enterprise.name }}</td>
+            <!-- Название теперь кликабельно -->
+            <td>
+                <a href="{% url 'enterprise-vehicles-list' enterprise.id %}">
+                  {{ enterprise.name }}
+                </a>
+            </td>
             <td>{{ enterprise.city }}</td>
             <td>{{ enterprise.local_timezone }}</td>
             <td>
