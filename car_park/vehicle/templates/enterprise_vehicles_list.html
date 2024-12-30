@@ -4,35 +4,37 @@
 {% block content %}
 <h1>Машины предприятия: {{ enterprise.name }}</h1>
 <a href="{% url 'vehicle-add' enterprise.id %}" class="btn btn-success mb-3">
-  Добавить машину
+    Добавить машину
 </a>
 <table class="table table-striped">
-  <thead>
+    <thead>
     <tr>
-      <th>VIN</th>
-      <th>Цена</th>
-      <th>Год выпуска</th>
-      <th>Пробег</th>
-      <th>Действия</th>
+        <th>VIN</th>
+        <th>Цена</th>
+        <th>Год выпуска</th>
+        <th>Пробег</th>
+        <th>Дата покупки</th>
+        <th>Действия</th>
     </tr>
-  </thead>
-  <tbody>
+    </thead>
+    <tbody>
     {% for vehicle in vehicles %}
     <tr>
-      <td>{{ vehicle.vin }}</td>
-      <td>{{ vehicle.price }}</td>
-      <td>{{ vehicle.release_year }}</td>
-      <td>{{ vehicle.mileage }}</td>
-      <td>
-        <a href="{% url 'vehicle-edit' enterprise.id vehicle.id %}" class="btn btn-primary btn-sm">Изм.</a>
-        <a href="{% url 'vehicle-delete' enterprise.id vehicle.id %}" class="btn btn-danger btn-sm">Уд.</a>
-      </td>
+        <td>{{ vehicle.vin }}</td>
+        <td>{{ vehicle.price }}</td>
+        <td>{{ vehicle.release_year }}</td>
+        <td>{{ vehicle.mileage }}</td>
+        <td>{{vehicle.purchase_datetime}}</td>
+        <td>
+            <a href="{% url 'vehicle-edit' enterprise.id vehicle.id %}" class="btn btn-primary btn-sm">Изм.</a>
+            <a href="{% url 'vehicle-delete' enterprise.id vehicle.id %}" class="btn btn-danger btn-sm">Уд.</a>
+        </td>
     </tr>
     {% empty %}
     <tr>
-      <td colspan="5">Нет машин для этого предприятия</td>
+        <td colspan="5">Нет машин для этого предприятия</td>
     </tr>
     {% endfor %}
-  </tbody>
+    </tbody>
 </table>
 {% endblock %}
