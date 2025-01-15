@@ -2,8 +2,9 @@ from django.contrib import admin
 
 # Register your models here.
 
-from .models import Vehicle, Brand, Model, Configuration, Enterprise, Driver, VehicleDriverAssignment, Manager
-
+from .models import Vehicle, Brand, Model, Configuration, Enterprise, Driver, VehicleDriverAssignment, Manager, \
+    VehicleGPSPoint
+from django.contrib.gis import admin as gis_admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import User
 
@@ -16,6 +17,10 @@ class BrandAdmin(admin.ModelAdmin):
 class ModelAdmin(admin.ModelAdmin):
     list_display = ('id', 'name', 'brand', 'vehicle_type')
     list_filter = ('brand', 'vehicle_type')
+
+@admin.register(VehicleGPSPoint)
+class VehicleGPSPointAdmin(gis_admin.GISModelAdmin):
+    list_display = ('vehicle', 'timestamp', 'location')
 
 
 @admin.register(Configuration)

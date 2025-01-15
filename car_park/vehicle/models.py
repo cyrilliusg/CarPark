@@ -3,6 +3,7 @@ from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator
 from django.db import models
 from django.utils import timezone
+from django.contrib.gis.db import models as gis_models
 
 from timezone_field import TimeZoneField
 
@@ -167,3 +168,17 @@ class Manager(models.Model):
 
     def __str__(self):
         return self.user.get_full_name() or self.user.username
+
+
+class VehicleGPSPoint(gis_models.Model):
+    vehicle = models.ForeignKey('Vehicle', on_delete=models.CASCADE, related_name='gps_points')
+    timestamp = models.DateTimeField(default=timezone.now)
+    location = gis_models.PointField()  # хранит точку (ш/д)
+
+    class Meta:
+        ordering = ['timestamp']
+        verbose_name = "GPS точка автомобиля"
+        verbose_name_plural = "GPS точки автомобилей"
+
+    def __str__(self):
+        return f"{self.vehicle} @ {self.timestamp} ({self.location})"

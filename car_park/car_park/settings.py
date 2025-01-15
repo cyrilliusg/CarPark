@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     'vehicle.apps.VehicleConfig',
     'rest_framework',
     "timezone_field",  # django-timezone-field
+    'django.contrib.gis', # PostGIS
 ]
 
 MIDDLEWARE = [
@@ -76,7 +77,7 @@ WSGI_APPLICATION = 'car_park.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql',
+        'ENGINE': 'django.contrib.gis.db.backends.postgis',
         'NAME': 'car_park_data',
         'USER': 'postgres',
         'PASSWORD': 'admin',
