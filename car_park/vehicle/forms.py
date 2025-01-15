@@ -12,6 +12,21 @@ class EnterpriseForm(forms.ModelForm):
 
 
 class VehicleForm(forms.ModelForm):
+    purchase_datetime = forms.DateTimeField(
+        label="Дата/время покупки (UTC)",
+        widget=forms.TextInput(
+            attrs={
+                # Можно присвоить класс и ID, если планируем обращаться именно к ним
+                'id': 'purchase_datetime_picker',
+                'class': 'form-control',
+                'autocomplete': 'off',
+                # можно добавить data-атрибуты, но это опционально, см. вёрстку ниже
+            }
+        )
+    )
+
     class Meta:
         model = Vehicle
-        exclude = ['enterprise', 'drivers']  # enterprise задаём из URL, drivers пока не трогаем
+        # Пусть остальные поля не трогаем,
+        # или исключаем, или выводим явно
+        exclude = ['enterprise', 'drivers']

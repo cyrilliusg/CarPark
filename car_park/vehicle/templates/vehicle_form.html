@@ -1,14 +1,89 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}{{ title }}{% endblock %}
+{% block title %} {{title}} {% endblock title %}
 
 {% block content %}
-<h1>{{ title }}</h1>
+<h1>{{title}}</h1>
+
 <form method="post">
     {% csrf_token %}
-    {{ form.as_p }}
+
+    <!-- 1. Покажем поля, кроме purchase_datetime, через цикл -->
+    {% for field in form %}
+      {% if field.name != 'purchase_datetime' %}
+        <div class="mb-3">
+          <label for="{{ field.id_for_label }}" class="form-label">
+            {{ field.label }}
+          </label>
+          {{ field }}
+          {% if field.help_text %}
+            <small class="form-text text-muted">{{ field.help_text }}</small>
+          {% endif %}
+          {% if field.errors %}
+            <div class="text-danger small">{{ field.errors }}</div>
+          {% endif %}
+        </div>
+      {% endif %}
+    {% endfor %}
+
+    <!-- 2. Теперь отдельно поле purchase_datetime с Tempus Dominus -->
+    <div class="mb-3">
+      <label for="purchase_datetime_picker" class="form-label">
+        {{ form.purchase_datetime.label }}
+      </label>
+
+      <!-- Обёртка для Tempus Dominus -->
+      <div class="input-group"
+           id="purchase_datetime_picker"
+           data-td-target-input="nearest"
+           data-td-toggle="datetimepicker">
+
+        <!-- Само поле (инпут), сгенерированное Django -->
+        {{ form.purchase_datetime }}
+
+        <!-- Кнопка-иконка -->
+        <span class="input-group-text"
+              data-td-target="#purchase_datetime_picker"
+              data-td-toggle="datetimepicker">
+          <i class="fa-solid fa-calendar"></i>
+        </span>
+      </div>
+
+      <!-- Ошибки поля (если есть) -->
+      {% if form.purchase_datetime.errors %}
+        <div class="text-danger small">
+          {{ form.purchase_datetime.errors }}
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- 3. Кнопки -->
     <button type="submit" class="btn btn-primary">Сохранить</button>
-    <a href="{% url 'enterprise-vehicles-list' enterprise.id %}" class="btn btn-secondary">Отмена</a>
 </form>
-{% endblock %}
+{% endblock content %}
+
+{% block extra_scripts %}
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const element = document.getElementById('purchase_datetime_picker');
+    new tempusDominus.TempusDominus(element, {
+      localization: {
+        locale: 'ru'
+      },
+      display: {
+        sideBySide: true,
+        icons: {
+          type: 'icons',
+          time: 'fa-solid fa-clock',
+          date: 'fa-solid fa-calendar',
+          up: 'fa-solid fa-arrow-up',
+          down: 'fa-solid fa-arrow-down',
+          previous: 'fa-solid fa-chevron-left',
+          next: 'fa-solid fa-chevron-right'
+        }
+      }
+    });
+  });
+</script>
+{% endblock extra_scripts %}
