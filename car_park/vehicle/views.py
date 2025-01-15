@@ -12,15 +12,19 @@ from rest_framework.views import APIView
 from rest_framework.exceptions import PermissionDenied
 
 from .forms import EnterpriseForm, VehicleForm
-from .models import Vehicle, Enterprise, Driver, VehicleDriverAssignment, Manager
+from .models import Vehicle, Enterprise, Driver, VehicleDriverAssignment, Manager, VehicleGPSPoint
 from .pagination import CustomPageNumberPagination
-from .serializers import VehicleSerializer, EnterpriseSerializer, DriverSerializer, VehicleDriverAssignmentSerializer
+from .serializers import VehicleSerializer, EnterpriseSerializer, DriverSerializer, VehicleDriverAssignmentSerializer, \
+    VehicleGPSPointSerializer, VehicleGPSPointGeoSerializer
 
 from django.contrib.auth import authenticate, login
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 import json
 
+from django.utils import timezone
+import zoneinfo
+from datetime import datetime
 
 @method_decorator(csrf_protect, name='dispatch')
 class ActiveVehicleDriverListAPIView(generics.ListAPIView):
@@ -326,3 +330,54 @@ def vehicle_delete_view(request, pk, vehicle_id):
         'vehicle': vehicle,
         'enterprise': enterprise
     })
+
+@method_decorator(csrf_protect, name='dispatch')
+class VehicleGPSPointListView(generics.ListAPIView):
+    """
+    GET /api/gps-points/?vehicle_id=...&start_time=...&end_time=...&format=geojson
+    """
+    permission_classes = [IsAuthenticated]
+    serializer_class = VehicleGPSPointSerializer  # Обычный JSON по умолчанию
+
+    def get_queryset(self):
+        manager = get_object_or_404(Manager, user=self.request.user)
+        enterprises = manager.enterprises.all()
+
+        queryset = VehicleGPSPoint.objects.all()
+
+        # Получение vehicle_id из пути или параметров
+        vehicle_id = self.kwargs.get('vehicle_id') or self.request.query_params.get('vehicle_id')
+        if vehicle_id:
+            # Проверяем принадлежность
+            vehicle = get_object_or_404(Vehicle, pk=vehicle_id, enterprise__in=enterprises)
+            queryset = queryset.filter(vehicle=vehicle)
+
+        start_local_str = self.request.query_params.get('start_time')
+        end_local_str = self.request.query_params.get('end_time')
+        if start_local_str and end_local_str:
+            fmt = "%Y-%m-%dT%H:%M"
+            if vehicle_id:
+                enterprise_tz = zoneinfo.ZoneInfo(vehicle.enterprise.local_timezone.key)
+            else:
+                enterprise_tz = zoneinfo.ZoneInfo("UTC")
+            try:
+                start_local = datetime.strptime(start_local_str, fmt)
+                end_local = datetime.strptime(end_local_str, fmt)
+            except ValueError as e:
+                # Если формат не соответствует, можем вернуть пустой queryset или выбросить 400
+                return queryset.none()
+
+            start_local_aware = start_local.replace(tzinfo=enterprise_tz)
+            end_local_aware = end_local.replace(tzinfo=enterprise_tz)
+            start_utc = start_local_aware.astimezone(timezone.timezone.utc)
+            end_utc = end_local_aware.astimezone(timezone.timezone.utc)
+
+            queryset = queryset.filter(timestamp__range=(start_utc, end_utc))
+        return queryset
+
+    def list(self, request, *args, **kwargs):
+        geojson_param = request.query_params.get('geojson', 'false')
+        if geojson_param == 'true':
+            self.serializer_class = VehicleGPSPointGeoSerializer
+        return super().list(request, *args, **kwargs)
+

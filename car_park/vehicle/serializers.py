@@ -1,6 +1,6 @@
 # serializers.py
 from rest_framework import serializers
-from .models import VehicleDriverAssignment, Vehicle, Driver, Enterprise
+from .models import VehicleDriverAssignment, Vehicle, Driver, Enterprise, VehicleGPSPoint
 
 
 class VehicleSerializer(serializers.ModelSerializer):
@@ -69,3 +69,43 @@ class VehicleDriverAssignmentSerializer(serializers.ModelSerializer):
     class Meta:
         model = VehicleDriverAssignment
         fields = ['id', 'vehicle', 'driver', 'is_active']
+
+
+class VehicleGPSPointSerializer(serializers.ModelSerializer):
+    # Координаты как список [lng, lat] или [lat, lng] - на ваше усмотрение
+    coordinates = serializers.SerializerMethodField()
+
+    class Meta:
+        model = VehicleGPSPoint
+        fields = ['id', 'vehicle', 'timestamp', 'coordinates']
+
+    def get_coordinates(self, obj):
+        # obj.location — Point (x=долгота, y=широта)
+        # или наоборот, в зависимости от используемой SRID
+        if obj.location:
+            return [obj.location.x, obj.location.y]
+        return None
+
+class VehicleGPSPointGeoSerializer(serializers.ModelSerializer):
+    type = serializers.CharField(default='Feature')
+    geometry = serializers.SerializerMethodField()
+    properties = serializers.SerializerMethodField()
+
+    class Meta:
+        model = VehicleGPSPoint
+        fields = ['type', 'geometry', 'properties']
+
+    def get_geometry(self, obj):
+        if obj.location:
+            return {
+                "type": "Point",
+                "coordinates": [obj.location.x, obj.location.y]
+            }
+        return None
+
+    def get_properties(self, obj):
+        return {
+            "id": obj.id,
+            "vehicle": obj.vehicle_id,
+            "timestamp": obj.timestamp.isoformat()
+        }
