@@ -12,10 +12,10 @@ from rest_framework.views import APIView
 from rest_framework.exceptions import PermissionDenied
 
 from .forms import EnterpriseForm, VehicleForm
-from .models import Vehicle, Enterprise, Driver, VehicleDriverAssignment, Manager, VehicleGPSPoint
+from .models import Vehicle, Enterprise, Driver, VehicleDriverAssignment, Manager, VehicleGPSPoint, Route
 from .pagination import CustomPageNumberPagination
 from .serializers import VehicleSerializer, EnterpriseSerializer, DriverSerializer, VehicleDriverAssignmentSerializer, \
-    VehicleGPSPointSerializer, VehicleGPSPointGeoSerializer
+    VehicleGPSPointSerializer, VehicleGPSPointGeoSerializer, RouteSerializer
 
 from django.contrib.auth import authenticate, login
 from django.http import JsonResponse
@@ -25,6 +25,7 @@ import json
 from django.utils import timezone
 import zoneinfo
 from datetime import datetime
+
 
 @method_decorator(csrf_protect, name='dispatch')
 class ActiveVehicleDriverListAPIView(generics.ListAPIView):
@@ -221,7 +222,6 @@ def api_login(request):
         return JsonResponse({'detail': 'Method not allowed.'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
 
-
 @csrf_protect
 def login_view(request):
     if request.method == 'POST':
@@ -234,6 +234,7 @@ def login_view(request):
         else:
             return render(request, 'login.html', {'error': 'Неверные учетные данные'})
     return render(request, 'login.html')
+
 
 @login_required
 def enterprise_list_view(request):
@@ -292,6 +293,7 @@ def vehicle_add_view(request, pk):
         'title': 'Добавление машины',
     })
 
+
 @login_required
 def vehicle_edit_view(request, pk, vehicle_id):
     manager = get_object_or_404(Manager, user=request.user)
@@ -314,6 +316,7 @@ def vehicle_edit_view(request, pk, vehicle_id):
         'title': 'Редактирование машины',
     })
 
+
 @login_required
 def vehicle_delete_view(request, pk, vehicle_id):
     manager = get_object_or_404(Manager, user=request.user)
@@ -330,6 +333,7 @@ def vehicle_delete_view(request, pk, vehicle_id):
         'vehicle': vehicle,
         'enterprise': enterprise
     })
+
 
 @method_decorator(csrf_protect, name='dispatch')
 class VehicleGPSPointListView(generics.ListAPIView):
@@ -381,3 +385,134 @@ class VehicleGPSPointListView(generics.ListAPIView):
             self.serializer_class = VehicleGPSPointGeoSerializer
         return super().list(request, *args, **kwargs)
 
+
+@method_decorator(csrf_protect, name='dispatch')
+class VehiclePointsByRoutesView(APIView):
+    """
+    GET /api/routes/points/?vehicle_id=...&start_time=...&end_time=...
+    start_time/end_time считаем локальными (таймзона предприятия). Переводим в UTC.
+    Фильтруем маршруты, которые строго внутри [start_utc, end_utc].
+    Собираем их точки.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        manager = get_object_or_404(Manager, user=self.request.user)
+        enterprises = manager.enterprises.all()
+
+        vehicle_id = request.query_params.get('vehicle_id')
+        start_local_str = request.query_params.get('start_time')
+        end_local_str = request.query_params.get('end_time')
+
+        if not vehicle_id or not start_local_str or not end_local_str:
+            return Response({"detail": "vehicle_id, start_time, end_time are required."},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        vehicle = get_object_or_404(Vehicle, pk=vehicle_id, enterprise__in=enterprises)
+
+        # Предположим, enterprise.local_timezone:
+        # Но, не зная enterprise, можно взять 'Europe/Moscow' или UTC.
+        # Допустим, берем "Europe/Moscow".
+        enterprise_tz = zoneinfo.ZoneInfo(vehicle.enterprise.local_timezone.key)
+
+        fmt = "%Y-%m-%dT%H:%M"
+        try:
+            start_local = datetime.strptime(start_local_str, fmt)
+            end_local = datetime.strptime(end_local_str, fmt)
+        except ValueError:
+            return Response({"detail": "Invalid time format. Use YYYY-MM-DDTHH:MM"},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        # Переводим naive -> aware
+        start_local_aware = start_local.replace(tzinfo=enterprise_tz)
+        end_local_aware = end_local.replace(tzinfo=enterprise_tz)
+
+        # В UTC
+        start_utc = start_local_aware.astimezone(timezone.timezone.utc)
+        end_utc = end_local_aware.astimezone(timezone.timezone.utc)
+
+        # Находим Routes.
+        # Условие: route.start_time >= start_utc  AND route.end_time <= end_utc
+        routes = Route.objects.filter(
+            vehicle_id=vehicle_id,
+            start_time__gte=start_utc,
+            end_time__lte=end_utc
+        )
+
+        # теперь собираем точки, которые лежат внутри каждого route
+        # вариант 1: общий список
+        all_points = []
+        for route in routes:
+            points = VehicleGPSPoint.objects.filter(
+                vehicle_id=vehicle_id,
+                timestamp__gte=route.start_time,
+                timestamp__lte=route.end_time
+            )
+            all_points.extend(points)
+
+        if not all_points:
+            return Response({"detail": "No Routes matches the given query."},
+                            status=status.HTTP_200_OK)
+
+        # сериализуем
+        serializer = VehicleGPSPointSerializer(all_points, many=True, context={'exclude_fields': ['vehicle']})
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+@method_decorator(csrf_protect, name='dispatch')
+class RouteListView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        manager = get_object_or_404(Manager, user=self.request.user)
+        enterprises = manager.enterprises.all()
+
+        vehicle_id = request.query_params.get('vehicle_id')
+        start_local_str = request.query_params.get('start_time')
+        end_local_str = request.query_params.get('end_time')
+
+        if not vehicle_id or not start_local_str or not end_local_str:
+            return Response({"detail": "vehicle_id, start_time, end_time are required."},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        vehicle = get_object_or_404(Vehicle, pk=vehicle_id, enterprise__in=enterprises)
+
+        # 2) Локальная таймзона
+        enterprise_tz = zoneinfo.ZoneInfo(vehicle.enterprise.local_timezone.key)
+
+        fmt = "%Y-%m-%dT%H:%M"
+        try:
+            start_local = datetime.strptime(start_local_str, fmt)
+            end_local = datetime.strptime(end_local_str, fmt)
+        except ValueError:
+            return Response({"detail": "Invalid time format. Use YYYY-MM-DDTHH:MM"},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        # Переводим naive -> aware
+        start_local_aware = start_local.replace(tzinfo=enterprise_tz)
+        end_local_aware = end_local.replace(tzinfo=enterprise_tz)
+
+        # В UTC
+        start_utc = start_local_aware.astimezone(timezone.timezone.utc)
+        end_utc = end_local_aware.astimezone(timezone.timezone.utc)
+
+        # 3) Фильтруем маршруты, которые ЦЕЛИКОМ внутри [start_utc, end_utc]
+        #    route.start_time >= start_utc AND route.end_time <= end_utc
+        routes = Route.objects.filter(
+            vehicle_id=vehicle_id,
+            start_time__gte=start_utc,
+            end_time__lte=end_utc
+        )
+
+        # 4) Сериализация
+        # Передаём context={'request': ..., 'ors_api_key': '...'}
+        # Это нужно для reverse geocode
+        serializer = RouteSerializer(
+            routes,
+            many=True,
+            context={
+                'request': request,
+                'ors_api_key': "5b3ce3597851110001cf62489efd2bfc610f4a348f0719877a5d6a56"
+            }
+        )
+        return Response(serializer.data, status=status.HTTP_200_OK)

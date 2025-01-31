@@ -17,7 +17,7 @@ from .views import (
     vehicle_add_view,
     vehicle_edit_view,
     vehicle_delete_view,
-    VehicleGPSPointListView,
+    VehicleGPSPointListView, VehiclePointsByRoutesView, RouteListView,
 )
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
@@ -55,5 +55,9 @@ urlpatterns = [
 
     path('api/gps-points/', VehicleGPSPointListView.as_view(), name='gps-points-list'),
     path('api/gps-points/<int:vehicle_id>/', VehicleGPSPointListView.as_view(), name='gps-point-list-specific'),
+
+    path('api/routes/points/', VehiclePointsByRoutesView.as_view(), name='routes-points-list'),
+
+    path('api/routes/', RouteListView.as_view(), name='route-list'),
 
 ]
