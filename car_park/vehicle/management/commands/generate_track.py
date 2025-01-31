@@ -5,7 +5,7 @@ from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
 from django.shortcuts import get_object_or_404
 from django.contrib.gis.geos import Point
-from ...models import Vehicle, VehicleGPSPoint
+from ...models import Vehicle, VehicleGPSPoint, Route
 
 
 class Command(BaseCommand):
@@ -74,19 +74,40 @@ class Command(BaseCommand):
 
         # Шаг 3: добавляем VehicleGPSPoint c псевдо-временем
         current_time = timezone.now()
+
+        start_time = current_time  # начало поездки.  Для записи Route
+
+        start_location, end_location = None, None
+
         for idx, (lng, lat) in enumerate(route_coords):
             # случайно варьируем приращение времени:
             random_delay = random.uniform(delay_sec * 0.5, delay_sec * 1.5)
             current_time += timezone.timedelta(seconds=random_delay)
+            point = Point(lng, lat, srid=4326)
             # Сохраняем точку
             VehicleGPSPoint.objects.create(
                 vehicle=vehicle,
                 timestamp=current_time,
-                location=Point(lng, lat, srid=4326)
+                location=point
             )
-            self.stdout.write(f"[{idx + 1}/{len(route_coords)}] [lat, lng] => {lat:.5f}, {lng:.5f}, time={current_time}")
+            self.stdout.write(
+                f"[{idx + 1}/{len(route_coords)}] [lat, lng] => {lat:.5f}, {lng:.5f}, time={current_time}")
+
+            if idx == 0:
+                start_location = point
+            if idx == len(route_coords) - 1:
+                end_location = point
 
         self.stdout.write(self.style.SUCCESS("Трек успешно сгенерирован!"))
+
+        end_time = current_time  # конец поездки.  Для записи Route
+        Route.objects.create(
+            vehicle=vehicle,
+            start_time=start_time,
+            end_time=end_time,
+            start_location=start_location,
+            end_location=end_location
+        )  # Записываем Route
 
     def __calculate_end_point(self, distance_km, start_lat, start_lng) -> list[float]:
         """Вычисляем конечную точку (end_lat, end_lng).
@@ -135,7 +156,7 @@ class Command(BaseCommand):
             'end': f"{end_lng},{end_lat}",
         }
         coordinates = []
-        self.stdout.write(params)
+
         try:
             r = requests.get(url, params=params, timeout=10)
             r.raise_for_status()

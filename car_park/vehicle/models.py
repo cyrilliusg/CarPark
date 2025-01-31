@@ -182,3 +182,23 @@ class VehicleGPSPoint(gis_models.Model):
 
     def __str__(self):
         return f"{self.vehicle} @ {self.timestamp} ({self.location})"
+
+
+class Route(models.Model):
+    vehicle = models.ForeignKey('Vehicle', on_delete=models.CASCADE, related_name='routes')
+    start_time = models.DateTimeField()  # UTC
+    end_time = models.DateTimeField()  # UTC
+    # Допустим, храним интервал (duration). PostgreSQL-специфичный тип "interval":
+    duration = models.DurationField(null=True, blank=True)
+
+    # Координаты начала/конца
+    start_location = gis_models.PointField( null=True, blank=True)
+    end_location = gis_models.PointField(null=True, blank=True)
+
+    def save(self, *args, **kwargs):
+        if self.start_time and self.end_time:
+            self.duration = self.end_time - self.start_time
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"Route for {self.vehicle} ({self.start_time} - {self.end_time})"

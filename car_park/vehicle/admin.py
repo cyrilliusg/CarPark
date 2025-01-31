@@ -3,7 +3,7 @@ from django.contrib import admin
 # Register your models here.
 
 from .models import Vehicle, Brand, Model, Configuration, Enterprise, Driver, VehicleDriverAssignment, Manager, \
-    VehicleGPSPoint
+    VehicleGPSPoint, Route
 from django.contrib.gis import admin as gis_admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import User
@@ -22,6 +22,9 @@ class ModelAdmin(admin.ModelAdmin):
 class VehicleGPSPointAdmin(gis_admin.GISModelAdmin):
     list_display = ('vehicle', 'timestamp', 'location')
 
+@admin.register(Route)
+class VehicleRouteAdmin(gis_admin.GISModelAdmin):
+    list_display = ('vehicle', 'start_time', 'end_time', 'start_location', 'end_location')
 
 @admin.register(Configuration)
 class ConfigurationAdmin(admin.ModelAdmin):
