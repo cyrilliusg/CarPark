@@ -20,7 +20,12 @@
     <tbody>
     {% for vehicle in vehicles %}
     <tr>
-        <td>{{ vehicle.vin }}</td>
+        <!-- VIN кликабельный -->
+        <td>
+            <a href="{% url 'vehicle-detail' pk=enterprise.id vehicle_id=vehicle.id %}">
+                {{ vehicle.vin }}
+            </a>
+        </td>
         <td>{{ vehicle.price }}</td>
         <td>{{ vehicle.release_year }}</td>
         <td>{{ vehicle.mileage }}</td>

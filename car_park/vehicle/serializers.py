@@ -1,7 +1,7 @@
 # serializers.py
-import requests
 from rest_framework import serializers
 from .models import VehicleDriverAssignment, Vehicle, Driver, Enterprise, VehicleGPSPoint, Route
+from .modules.ors import reverse_geocode_ors
 
 
 class VehicleSerializer(serializers.ModelSerializer):
@@ -103,6 +103,7 @@ class VehicleGPSPointSerializer(serializers.ModelSerializer):
             return [obj.location.x, obj.location.y]
         return None
 
+
 class VehicleGPSPointGeoSerializer(serializers.ModelSerializer):
     type = serializers.CharField(default='Feature')
     geometry = serializers.SerializerMethodField()
@@ -126,6 +127,7 @@ class VehicleGPSPointGeoSerializer(serializers.ModelSerializer):
             "vehicle": obj.vehicle_id,
             "timestamp": obj.timestamp.isoformat()
         }
+
 
 class RouteSerializer(serializers.ModelSerializer):
     start_address = serializers.SerializerMethodField()
@@ -152,7 +154,8 @@ class RouteSerializer(serializers.ModelSerializer):
         # Если в URL ?geocode=true, тогда делаем геокодирование
         geocode = request.query_params.get('geocode') if request else None
         if geocode == 'true':
-            return self.reverse_geocode_ors(obj.start_location.y, obj.start_location.x)
+            api_key = self.context.get('ors_api_key')  # Передадим в view
+            return reverse_geocode_ors(api_key, obj.start_location.y, obj.start_location.x)
         return None
 
     def get_end_address(self, obj):
@@ -161,33 +164,8 @@ class RouteSerializer(serializers.ModelSerializer):
             return None
         geocode = request.query_params.get('geocode') if request else None
         if geocode == 'true':
-            return self.reverse_geocode_ors(obj.end_location.y, obj.end_location.x)
+            api_key = self.context.get('ors_api_key')  # Передадим в view
+            return reverse_geocode_ors(api_key, obj.end_location.y, obj.end_location.x)
         return None
 
-    def reverse_geocode_ors(self, lat, lng):
-        """
-        Обратное геокодирование через ORS /geocode/reverse
-        https://openrouteservice.org/dev/#/api-docs/geocode/reverse
-        """
-        api_key = self.context.get('ors_api_key')  # Передадим в view
-        if not api_key:
-            return None
-        url = "https://api.openrouteservice.org/geocode/reverse"
-        params = {
-            'api_key': api_key,
-            'point.lat': lat,
-            'point.lon': lng,
-            'size':1,
-            'sources':'osm'
-        }
-        try:
-            r = requests.get(url, params=params, timeout=5)
-            r.raise_for_status()
-            print(r)
-            data = r.json()
-            print(data)
-            # например, data['features'][0]['properties']['label']
-            address = data['features'][0]['properties'].get('label')
-            return address
-        except Exception as e:
-            return None
+

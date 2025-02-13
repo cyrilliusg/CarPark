@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %} Детали машины {{ vehicle.vin }}{% endblock %}
+
+{% block content %}
+<h1 class="mb-3">Машина: {{ vehicle.vin }}</h1>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <h5 class="card-title">Характеристики</h5>
+        <p><strong>Год выпуска:</strong> {{ vehicle.release_year }}</p>
+        <p><strong>Цена:</strong> {{ vehicle.price }}</p>
+        <p><strong>Пробег:</strong> {{ vehicle.mileage }} км</p>
+        <p><strong>Куплена:</strong> {{ vehicle.purchase_datetime }}</p>
+    </div>
+</div>
+
+<form method="get" class="mb-4">
+    <div class="row g-2 align-items-end">  <!-- g-2 = отступы между колонками -->
+        <div class="col-md-5">
+            <label class="form-label">Начальная дата</label>
+            <div class="input-group" id="start_datetime_picker" data-td-target-input="nearest" data-td-toggle="datetimepicker">
+                <input type="text" id="start_date" class="form-control" name="start_date" value="{{ start_date|default_if_none:'' }}">
+                <span class="input-group-text" data-td-target="#start_datetime_picker" data-td-toggle="datetimepicker">
+                    <i class="fa-solid fa-calendar"></i>
+                </span>
+            </div>
+        </div>
+
+        <div class="col-md-5">
+            <label class="form-label">Конечная дата</label>
+            <div class="input-group" id="end_datetime_picker" data-td-target-input="nearest" data-td-toggle="datetimepicker">
+                <input type="text" id="end_date" class="form-control" name="end_date" value="{{ end_date|default_if_none:'' }}">
+                <span class="input-group-text" data-td-target="#end_datetime_picker" data-td-toggle="datetimepicker">
+                    <i class="fa-solid fa-calendar"></i>
+                </span>
+            </div>
+        </div>
+
+        <div class="col-md-2">
+            <button type="submit" class="btn btn-primary w-100">Показать</button>
+        </div>
+    </div>
+</form>
+
+
+{% if routes %}
+<h2>Поездки за указанный период</h2>
+<table class="table table-striped">
+    <thead>
+    <tr>
+        <th>Начальный адрес</th>
+        <th>Время начала</th>
+        <th>Конечный адрес</th>
+        <th>Время окончания</th>
+        <th>Длительность</th>
+        <th></th>
+    </tr>
+    </thead>
+    <tbody>
+    {% for route in routes %}
+    <tr>
+        <td>{{ route.start_address|default:"Неизвестный адрес" }}</td>
+        <td>{{ route.start_time }}</td>
+        <td>{{ route.end_address|default:"Неизвестный адрес" }}</td>
+        <td>{{ route.end_time }}</td>
+        <td>{{ route.duration }}</td>
+        <td>
+            <button class="btn btn-primary btn-sm toggle-map" data-route-id="{{ route.id }}">Показать трек</button>
+        </td>
+    </tr>
+    <tr class="route-map-row d-none" id="route-map-{{ route.id }}">
+        <td colspan="3">
+            <div class="map-container text-center p-3">
+                <span class="loading-text">Загрузка карты...</span>
+            </div>
+        </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p>Нет поездок в этом диапазоне.</p>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+      document.querySelectorAll('.toggle-map').forEach(button => {
+        button.addEventListener('click', function() {
+          let routeId = this.dataset.routeId;
+          let mapRow = document.getElementById(`route-map-${routeId}`);
+          let mapContainer = mapRow.querySelector('.map-container');
+
+          if (mapRow.classList.contains('d-none')) {
+            // Здесь можно дополнительно добавить заголовок "XMLHttpRequest" если нужно:
+
+            fetch(`/enterprises/{{ enterprise.id }}/vehicles/{{ vehicle.id }}/map/?route_id=${routeId}`, {
+              headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+              .then(response => response.text())
+              .then(html => { mapContainer.innerHTML = html; })
+              .catch(err => { mapContainer.innerHTML = "Ошибка загрузки карты"; });
+
+            mapRow.classList.remove('d-none');
+            this.textContent = "Скрыть трек";
+          } else {
+            mapRow.classList.add('d-none');
+            this.textContent = "Показать трек";
+          }
+        });
+      });
+
+
+    //const elements = document.getElementById('start_datetime_picker');
+
+var elements = document.querySelectorAll('#start_datetime_picker, #end_datetime_picker');
+
+    elements.forEach(function (element) {
+        new tempusDominus.TempusDominus(element, {
+            localization: {
+                locale: 'ru'
+            },
+            display: {
+                sideBySide: true,
+                icons: {
+                    type: 'icons',
+                    time: 'fa-solid fa-clock',
+                    date: 'fa-solid fa-calendar',
+                    up: 'fa-solid fa-arrow-up',
+                    down: 'fa-solid fa-arrow-down',
+                    previous: 'fa-solid fa-chevron-left',
+                    next: 'fa-solid fa-chevron-right'
+                }
+            }
+        });
+    });
+    });
+</script>
+
+
+{% endblock %}

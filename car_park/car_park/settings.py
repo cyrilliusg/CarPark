@@ -38,7 +38,7 @@ INSTALLED_APPS = [
     'vehicle.apps.VehicleConfig',
     'rest_framework',
     "timezone_field",  # django-timezone-field
-    'django.contrib.gis', # PostGIS
+    'django.contrib.gis',  # PostGIS
 ]
 
 MIDDLEWARE = [
@@ -135,9 +135,14 @@ REST_FRAMEWORK = {
         'rest_framework.permissions.IsAuthenticated',
     ],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 20,  # Количество объектов на страницу
-}
+    'PAGE_SIZE': 20,  # Количество объектов на страницу,
 
+    'DEFAULT_RENDERER_CLASSES': [
+        'rest_framework.renderers.JSONRenderer',
+        'rest_framework.renderers.BrowsableAPIRenderer',
+        'rest_framework_csv.renderers.CSVRenderer',  # Добавляем поддержку CSV
+    ]
+}
 
 LOGGING = {
     'version': 1,
@@ -154,5 +159,3 @@ LOGGING = {
         },
     },
 }
-
-OPEN_ROUTE_KEY = "5b3ce3597851110001cf62489efd2bfc610f4a348f0719877a5d6a56"
