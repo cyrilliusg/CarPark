@@ -17,7 +17,8 @@ from .views import (
     vehicle_add_view,
     vehicle_edit_view,
     vehicle_delete_view,
-    VehicleGPSPointListView, VehiclePointsByRoutesView, RouteListView,
+    VehicleGPSPointListView, VehiclePointsByRoutesView, RouteListView, vehicle_detail_view, vehicle_map_view,
+    ExportEnterpriseListView, ImportEnterpriseDataJSONView, ImportEnterpriseDataCSVView,
 )
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
@@ -59,5 +60,13 @@ urlpatterns = [
     path('api/routes/points/', VehiclePointsByRoutesView.as_view(), name='routes-points-list'),
 
     path('api/routes/', RouteListView.as_view(), name='route-list'),
+
+    path('enterprises/<int:pk>/vehicles/<int:vehicle_id>/', vehicle_detail_view, name='vehicle-detail'),
+    path('enterprises/<int:pk>/vehicles/<int:vehicle_id>/map/', vehicle_map_view, name='vehicle-map'),
+
+    path('api/export-enterprise-data/', ExportEnterpriseListView.as_view(), name='export_enterprise_data'),
+
+    path('api/import-enterprise-data-json/', ImportEnterpriseDataJSONView.as_view(), name='import-enterprise-json'),
+    path('api/import-enterprise-data-csv/', ImportEnterpriseDataCSVView.as_view(), name='import-enterprise-csv'),
 
 ]

@@ -1,3 +1,5 @@
+import uuid
+
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator
@@ -58,6 +60,7 @@ class Enterprise(models.Model):
         default='UTC',
         verbose_name='Локальная таймзона'
     )
+    external_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
 
     def __str__(self):
         return self.name
@@ -127,6 +130,8 @@ class Vehicle(models.Model):
         verbose_name='Дата/время покупки (UTC)'
     )
 
+    external_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
+
     def __str__(self):
         return f"{self.configuration.model.brand.name} {self.configuration.model.name} (VIN: {self.vin})"
 
@@ -194,6 +199,8 @@ class Route(models.Model):
     # Координаты начала/конца
     start_location = gis_models.PointField( null=True, blank=True)
     end_location = gis_models.PointField(null=True, blank=True)
+
+    external_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
 
     def save(self, *args, **kwargs):
         if self.start_time and self.end_time:
