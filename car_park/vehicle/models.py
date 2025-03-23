@@ -6,8 +6,11 @@ from django.core.validators import MinValueValidator
 from django.db import models
 from django.utils import timezone
 from django.contrib.gis.db import models as gis_models
+from haversine import haversine
 
 from timezone_field import TimeZoneField
+
+from .modules.gps_math import get_period_key
 
 
 # Create your models here.
@@ -209,3 +212,83 @@ class Route(models.Model):
 
     def __str__(self):
         return f"Route for {self.vehicle} ({self.start_time} - {self.end_time})"
+
+
+class Report(models.Model):
+    """
+    Базовая модель отчёта.
+    Можно сделать abstract=True, если вы никогда не будете её инстанцировать напрямую.
+    Но если хотите иметь 'общие' отчёты, пусть будет полноценной.
+    """
+    name = models.CharField(max_length=255, verbose_name="Название отчёта")
+    start_date = models.DateField()
+    end_date = models.DateField()
+
+    PERIOD_CHOICES = [
+        ('day', 'День'),
+        ('month', 'Месяц'),
+        ('year', 'Год'),
+    ]
+    period = models.CharField(max_length=10, choices=PERIOD_CHOICES)
+
+    # Результат в виде массива/словаря "дата" => "значение"
+    # Можно хранить [{"date": "...", "value": ...}, ...] или более сложную структуру
+    result = models.JSONField(null=True, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    # Если хотим привязать к пользователю-автору
+    # user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Report {self.name} [{self.start_date} - {self.end_date}] {self.period} {self.result} {self.created_at}"
+
+
+class VehicleMileageReport(Report):
+    """
+    Пример конкретного отчёта о пробеге автомобиля.
+    """
+    vehicle = models.ForeignKey('Vehicle', on_delete=models.CASCADE, related_name='mileage_reports')
+
+    # Дополнительные поля?
+    # total_mileage = models.PositiveIntegerField(default=0)
+
+    def calculate_report(self):
+        """
+        Здесь можно сделать вычисление пробега по GPS-точкам / маршрутам.
+        По итогу записать self.result = [...], self.save()
+        """
+        # Логика: берем start_date, end_date, period => делаем агрегацию.
+        # Считаем, например, суммарный километраж по дням/месяцам.
+        # self.result = [{"date": "2025-01-01", "mileage": 123}, ...]
+
+        # Пример.
+        points = VehicleGPSPoint.objects.filter(
+            vehicle=self.vehicle,
+            timestamp__date__gte=self.start_date,
+            timestamp__date__lte=self.end_date
+        ).order_by('timestamp')
+        # Считаем накопительный пробег
+        total = 0.0
+        prev = None
+        daily_data = {}
+        for p in points:
+            if prev:
+                dist = haversine((prev.location.y, prev.location.x), (p.location.y, p.location.x))
+                # dist в км
+                # dayKey = p.timestamp.date() (если period='day')
+                dayKey = get_period_key(p.timestamp, self.period)  # day/month/year
+                daily_data[dayKey] = daily_data.get(dayKey, 0) + dist
+            prev = p
+        # Превращаем dict -> list
+        self.result = [{"date": k, "mileage": v} for k, v in daily_data.items()]
+        # self.save()
+
+
+
+
+
+

@@ -19,7 +19,8 @@ from rest_framework.views import APIView
 from rest_framework.exceptions import PermissionDenied
 
 from .forms import EnterpriseForm, VehicleForm
-from .models import Vehicle, Enterprise, Driver, VehicleDriverAssignment, Manager, VehicleGPSPoint, Route
+from .models import Vehicle, Enterprise, Driver, VehicleDriverAssignment, Manager, VehicleGPSPoint, Route, \
+    VehicleMileageReport
 from .modules.ors import reverse_geocode_ors, KEY
 from .pagination import CustomPageNumberPagination
 from .serializers import VehicleSerializer, EnterpriseSerializer, DriverSerializer, VehicleDriverAssignmentSerializer, \
@@ -1083,3 +1084,106 @@ class ImportEnterpriseDataCSVView(APIView):
 def parse_datetime(dt_str):
     """Функция для преобразования строки в datetime"""
     return datetime.fromisoformat(dt_str) if dt_str else None
+
+
+
+
+
+@login_required
+def report_list_view(request):
+    manager = get_object_or_404(Manager, user=request.user)
+    # Вывести все отчёты, где manager имеет доступ (например, все VehicleMileageReport для enterprise in manager.enterprises).
+    # Либо все Report, если user=...
+    # В упрощенном случае:
+    reports = VehicleMileageReport.objects.filter(
+        vehicle__enterprise__in=manager.enterprises.all()
+    )
+    return render(request, 'report_list.html', {'reports': reports})
+
+
+@login_required
+def create_mileage_report_view(request):
+    manager = get_object_or_404(Manager, user=request.user)
+    # Если POST -> собираем данные, создаём VehicleMileageReport
+    if request.method == 'POST':
+        vehicle_id = request.POST.get('vehicle_id')
+        start_date_str = request.POST.get('start_date')
+        end_date_str = request.POST.get('end_date')
+        period = request.POST.get('period')  # day/month/year
+
+        # Находим vehicle:
+        vehicle = get_object_or_404(Vehicle, pk=vehicle_id, enterprise__in=manager.enterprises.all())
+
+        # Преобразуем start/end в date
+        start_date = datetime.strptime(start_date_str, "%Y-%m-%d").date()
+        end_date = datetime.strptime(end_date_str, "%Y-%m-%d").date()
+
+        # Создаём
+        rep = VehicleMileageReport.objects.create(
+            name=f"Отчёт о пробеге {vehicle.vin}",
+            start_date=start_date,
+            end_date=end_date,
+            period=period,
+            vehicle=vehicle
+        )
+        rep.calculate_report()
+        rep.save()
+        return redirect('report-detail', pk=rep.pk)
+
+    # GET -> показать форму
+    vehicles = Vehicle.objects.filter(enterprise__in=manager.enterprises.all())
+    return render(request, 'create_mileage_report.html', {'vehicles': vehicles})
+
+@login_required
+def report_detail_view(request, pk):
+    manager = get_object_or_404(Manager, user=request.user)
+    # Сначала находим Report (или VehicleMileageReport)
+    report = get_object_or_404(VehicleMileageReport, pk=pk, vehicle__enterprise__in=manager.enterprises.all())
+
+    # Преобразуем JSONField в список Python-объектов
+    try:
+        report.result = json.loads(report.result) if isinstance(report.result, str) else report.result
+    except json.JSONDecodeError:
+        report.result = []
+    # rep.result - это JSON (dict/list)
+    return render(request, 'report_detail.html', {'report': report})
+
+
+@method_decorator(csrf_protect, name='dispatch')
+class MileageReportAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        manager = get_object_or_404(Manager, user=request.user)
+        vehicle_id = request.query_params.get('vehicle_id')
+        start_date_str = request.query_params.get('start_date')
+        end_date_str = request.query_params.get('end_date')
+        period = request.query_params.get('period', 'day')
+
+        # 1) Ищем vehicle
+        vehicle = get_object_or_404(Vehicle, pk=vehicle_id, enterprise__in=manager.enterprises.all())
+
+        # 2) Парсим даты
+        start_date = datetime.strptime(start_date_str, "%Y-%m-%d").date()
+        end_date = datetime.strptime(end_date_str, "%Y-%m-%d").date()
+
+        # 3) Создаём объект отчёта (в памяти, не обязательно в БД)
+        # Или можно create/save
+        rep = VehicleMileageReport(
+            name=f"Милетж {vehicle.vin}",
+            start_date=start_date,
+            end_date=end_date,
+            period=period,
+            vehicle=vehicle
+        )
+        rep.calculate_report()  # внутри заполнит rep.result
+
+        data = {
+            "type": "mileage",
+            "vehicle": vehicle.vin,
+            "start_date": str(start_date),
+            "end_date": str(end_date),
+            "period": period,
+            "result": rep.result  # dict or list
+        }
+        return Response(data, status=200)

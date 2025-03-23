@@ -18,7 +18,8 @@ from .views import (
     vehicle_edit_view,
     vehicle_delete_view,
     VehicleGPSPointListView, VehiclePointsByRoutesView, RouteListView, vehicle_detail_view, vehicle_map_view,
-    ExportEnterpriseListView, ImportEnterpriseDataJSONView, ImportEnterpriseDataCSVView,
+    ExportEnterpriseListView, ImportEnterpriseDataJSONView, ImportEnterpriseDataCSVView, report_list_view,
+    create_mileage_report_view, report_detail_view, MileageReportAPIView,
 )
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
@@ -68,5 +69,15 @@ urlpatterns = [
 
     path('api/import-enterprise-data-json/', ImportEnterpriseDataJSONView.as_view(), name='import-enterprise-json'),
     path('api/import-enterprise-data-csv/', ImportEnterpriseDataCSVView.as_view(), name='import-enterprise-csv'),
+
+    # 1. Веб-интерфейс отчётов
+    path('reports/', report_list_view, name='report-list-view'),  # Список отчётов
+    path('reports/<int:pk>/', report_detail_view, name='report-detail'),  # Детальный просмотр отчёта
+    path('reports/create/mileage/', create_mileage_report_view, name='create-mileage-report'),
+    # Создать отчёт о пробеге
+
+    # 2. REST API для отчётов
+    path('api/reports/mileage/', MileageReportAPIView.as_view(), name='mileage-report-api'),
+    # API для пробега автомобиля
 
 ]

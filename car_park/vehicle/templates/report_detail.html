@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<h2>{{ report.name }}</h2>
+<p>Период: {{ report.get_period_display }}<br>
+    Даты: {{ report.start_date }} - {{ report.end_date }}</p>
+
+<!-- Допустим, result = [{"date": "2025-01-01", "mileage": 123}, ...] -->
+{% if report.result %}
+<table class="table table-striped">
+    <tr>
+        <th>Дата</th>
+        <th>Пробег</th>
+    </tr>
+    {% for row in report.result %}
+    <tr>
+        <td>{{ row.date }}</td>
+        <td>{{ row.mileage }}</td>
+    </tr>
+    {% endfor %}
+</table>
+{% endif %}
+{% endblock %}
