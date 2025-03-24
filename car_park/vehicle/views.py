@@ -4,10 +4,13 @@ import io
 import zipfile
 
 import folium
+
 from django.contrib.gis.geos import Point
 from django.shortcuts import render, redirect, get_object_or_404
 from django.template.loader import render_to_string
+
 from django.utils.decorators import method_decorator
+
 from django.views.decorators.csrf import csrf_protect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
@@ -547,10 +550,20 @@ def vehicle_detail_view(request, pk, vehicle_id):
 
     local_tz = zoneinfo.ZoneInfo(vehicle.enterprise.local_timezone.key)
 
+    context = {
+        'enterprise': enterprise,
+        'vehicle': vehicle,
+        'routes': routes,
+        'start_date': start_str,
+        'end_date': end_str,
+        'error': None,
+    }
+
     if start_str and end_str:
         # Предположим формат YYYY-MM-DD
+        fmt = "%m/%d/%Y %I:%M %p"
         try:
-            fmt = "%m/%d/%Y %I:%M %p"
+
             start_date = datetime.strptime(start_str, fmt).date()
             end_date = datetime.strptime(end_str, fmt).date()
 
@@ -582,16 +595,10 @@ def vehicle_detail_view(request, pk, vehicle_id):
 
         except ValueError:
             # Ошибка формата дат
-            pass
+            context['error'] = f"Ошибка формата дат. Должнен быть формат: {fmt}"
 
-    # Рендер
-    context = {
-        'enterprise': enterprise,
-        'vehicle': vehicle,
-        'routes': routes,
-        'start_date': start_str,
-        'end_date': end_str,
-    }
+    context['routes'] = routes
+
     return render(request, 'vehicle_detail.html', context)
 
 

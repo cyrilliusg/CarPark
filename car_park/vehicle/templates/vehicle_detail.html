@@ -4,9 +4,10 @@
 {% block title %} Детали машины {{ vehicle.vin }}{% endblock %}
 
 {% block content %}
+
 <h1 class="mb-3">Машина: {{ vehicle.vin }}</h1>
 
-<div class="card mb-4">
+<div class="card mb-3">
     <div class="card-body">
         <h5 class="card-title">Характеристики</h5>
         <p><strong>Год выпуска:</strong> {{ vehicle.release_year }}</p>
@@ -80,6 +81,10 @@
     {% endfor %}
     </tbody>
 </table>
+
+{% elif error %}
+<p>{{ error }}</p>
+
 {% else %}
 <p>Нет поездок в этом диапазоне.</p>
 {% endif %}
