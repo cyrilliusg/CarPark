@@ -30,3 +30,15 @@ class VehicleForm(forms.ModelForm):
         # Пусть остальные поля не трогаем,
         # или исключаем, или выводим явно
         exclude = ['enterprise', 'drivers']
+
+class TripUploadForm(forms.Form):
+    vehicle = forms.ModelChoiceField(queryset=Vehicle.objects.all(), label='Машина')
+    start_time = forms.DateTimeField(
+        label='Начало поездки',
+        widget=forms.DateTimeInput(attrs={'type': 'datetime-local'})
+    )
+    end_time = forms.DateTimeField(
+        label='Окончание поездки',
+        widget=forms.DateTimeInput(attrs={'type': 'datetime-local'})
+    )
+    gpx_file = forms.FileField(label='GPX файл')

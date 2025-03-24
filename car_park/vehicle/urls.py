@@ -19,7 +19,7 @@ from .views import (
     vehicle_delete_view,
     VehicleGPSPointListView, VehiclePointsByRoutesView, RouteListView, vehicle_detail_view, vehicle_map_view,
     ExportEnterpriseListView, ImportEnterpriseDataJSONView, ImportEnterpriseDataCSVView, report_list_view,
-    create_mileage_report_view, report_detail_view, MileageReportAPIView,
+    create_mileage_report_view, report_detail_view, MileageReportAPIView, upload_trip_view,
 )
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
@@ -79,5 +79,7 @@ urlpatterns = [
     # 2. REST API для отчётов
     path('api/reports/mileage/', MileageReportAPIView.as_view(), name='mileage-report-api'),
     # API для пробега автомобиля
+
+    path('vehicles/upload_trip/', upload_trip_view, name='upload_trip'),
 
 ]

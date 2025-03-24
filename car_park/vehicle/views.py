@@ -4,13 +4,13 @@ import io
 import zipfile
 
 import folium
-
+import gpxpy
 from django.contrib.gis.geos import Point
 from django.shortcuts import render, redirect, get_object_or_404
 from django.template.loader import render_to_string
-
+from django.urls import reverse
 from django.utils.decorators import method_decorator
-
+from django.utils.http import urlencode
 from django.views.decorators.csrf import csrf_protect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
@@ -21,7 +21,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.exceptions import PermissionDenied
 
-from .forms import EnterpriseForm, VehicleForm
+from .forms import EnterpriseForm, VehicleForm, TripUploadForm
 from .models import Vehicle, Enterprise, Driver, VehicleDriverAssignment, Manager, VehicleGPSPoint, Route, \
     VehicleMileageReport
 from .modules.ors import reverse_geocode_ors, KEY
@@ -1194,3 +1194,97 @@ class MileageReportAPIView(APIView):
             "result": rep.result  # dict or list
         }
         return Response(data, status=200)
+
+@login_required
+def upload_trip_view(request):
+    if request.method == 'POST':
+        form = TripUploadForm(request.POST, request.FILES)
+        if form.is_valid():
+            vehicle = form.cleaned_data['vehicle']
+            start_time = form.cleaned_data['start_time']
+            end_time = form.cleaned_data['end_time']
+            gpx_file = form.cleaned_data['gpx_file']
+
+            # Проверка корректности временного диапазона
+            if start_time >= end_time:
+                form.add_error('end_time', 'Время окончания должно быть позже времени начала.')
+                return render(request, 'upload_trip.html', {'form': form})
+
+            # Проверка отсутствия перекрытия с существующими маршрутами
+            overlapping = Route.objects.filter(
+                vehicle=vehicle,
+                start_time__lt=end_time,
+                end_time__gt=start_time
+            )
+            if overlapping.exists():
+                form.add_error(None, "Выбранное время пересекается с существующими маршрутами.")
+                return render(request, 'upload_trip.html', {'form': form})
+
+            # Парсинг GPX файла
+            try:
+                gpx = gpxpy.parse(gpx_file)
+            except Exception:
+                form.add_error('gpx_file', 'Невозможно обработать GPX файл. Проверьте его корректность.')
+                return render(request, 'upload_trip.html', {'form': form})
+
+            track_points = []
+            # Если трековые данные есть, используем их
+            if gpx.tracks:
+                for track in gpx.tracks:
+                    for segment in track.segments:
+                        for point in segment.points:
+                            if not point.time:
+                                form.add_error('gpx_file', 'Все точки трека должны иметь временные метки.')
+                                return render(request, 'upload_trip.html', {'form': form})
+                            if not (start_time <= point.time <= end_time):
+                                form.add_error('gpx_file',
+                                               'Временные метки точек не укладываются в указанный диапазон поездки.')
+                                return render(request, 'upload_trip.html', {'form': form})
+                            track_points.append({'time': point.time, 'point': Point(point.longitude, point.latitude)})
+            # Если треков нет, обрабатываем waypoints
+            elif gpx.waypoints:
+                for point in gpx.waypoints:
+                    if not point.time:
+                        form.add_error('gpx_file', 'Все точки должны иметь временные метки.')
+                        return render(request, 'upload_trip.html', {'form': form})
+                    if not (start_time <= point.time <= end_time):
+                        form.add_error('gpx_file',
+                                       'Временные метки точек не укладываются в указанный диапазон поездки.')
+                        return render(request, 'upload_trip.html', {'form': form})
+                    track_points.append({'time': point.time, 'point': Point(point.longitude, point.latitude)})
+            else:
+                form.add_error('gpx_file', 'GPX файл не содержит данных о треке или путевых точках.')
+                return render(request, 'upload_trip.html', {'form': form})
+            # Создаем маршрут
+            route = Route.objects.create(
+                vehicle=vehicle,
+                start_time=start_time,
+                end_time=end_time,
+                start_location=track_points[0]['point'] if track_points else None,
+                end_location=track_points[-1]['point'] if track_points else None
+            )
+
+            # Сохраняем точки маршрута
+            for tp in track_points:
+                VehicleGPSPoint.objects.create(
+                    vehicle=vehicle,
+                    timestamp=tp['time'],
+                    location=tp['point']
+                )
+
+            # Форматирование дат (должно совпадать с тем, что обрабатывает vehicle_detail_view)
+            fmt = "%m/%d/%Y %I:%M %p"
+            start_str = start_time.strftime(fmt)
+            end_str = end_time.strftime(fmt)
+
+            # Построение URL
+            base_url = reverse('vehicle-detail', kwargs={'pk': vehicle.enterprise.pk, 'vehicle_id': vehicle.pk})
+            query_params = urlencode({'start_date': start_str, 'end_date': end_str})
+
+            redirect_url = f"{base_url}?{query_params}"
+
+            return redirect(redirect_url)
+
+    else:
+        form = TripUploadForm()
+    return render(request, 'upload_trip.html', {'form': form})
