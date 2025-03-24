@@ -2,48 +2,104 @@
 <html lang="ru">
 
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
     <title>{% block title %}Автопарк{% endblock %}</title>
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
-        integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+          integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
 
     <link rel="stylesheet"
-        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"
-        integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg=="
-        crossorigin="anonymous"
-        referrerpolicy="no-referrer" />
+          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"
+          integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg=="
+          crossorigin="anonymous"
+          referrerpolicy="no-referrer"/>
 
     <link rel="stylesheet"
           href="https://cdnjs.cloudflare.com/ajax/libs/tempus-dominus/6.4.4/css/tempus-dominus.min.css"
           integrity="sha512-wO+rVZhTyJgwKxVY279cD/TZTlW2m0IJQXzoOHfj2w//md58T3jc8ZWHb+HEm8CspcCNnaJVFPyRAGd/Y4ScfA=="
           crossorigin="anonymous"
-      referrerpolicy="no-referrer" />
+          referrerpolicy="no-referrer"/>
 
     {% block head %}{% endblock head %}
 </head>
 
 <body>
-    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+<nav class="navbar navbar-expand-lg navbar-light bg-light">
+    <div class="container-fluid">
         <a class="navbar-brand" href="#">Автопарк</a>
-    </nav>
 
-    <div class="container mt-4">
-        {% block content %}{% endblock %}
+        <div class="collapse navbar-collapse" id="navbarNav">
+
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                <!-- Предприятия -->
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'enterprise-list-view' %}">Предприятия</a>
+                </li>
+
+                <!-- Транспорт -->
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="vehiclesDropdown" role="button"
+                       data-bs-toggle="dropdown" aria-expanded="false">
+                        Транспорт
+                    </a>
+                    <ul class="dropdown-menu" aria-labelledby="vehiclesDropdown">
+                        <li><a class="dropdown-item" href="{% url 'upload_trip' %}">Загрузить поездку</a></li>
+                    </ul>
+                </li>
+
+                <!-- Отчёты -->
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="reportsDropdown" role="button"
+                       data-bs-toggle="dropdown" aria-expanded="false">
+                        Отчёты
+                    </a>
+                    <ul class="dropdown-menu" aria-labelledby="reportsDropdown">
+                        <li><a class="dropdown-item" href="{% url 'report-list-view' %}">Список отчётов</a></li>
+                        <li><a class="dropdown-item" href="{% url 'create-mileage-report' %}">Создать отчёт о
+                            пробеге</a></li>
+                    </ul>
+                </li>
+
+                <!-- Импорт / Экспорт -->
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="importExportDropdown" role="button"
+                       data-bs-toggle="dropdown" aria-expanded="false">
+                        Импорт / Экспорт
+                    </a>
+                    <ul class="dropdown-menu" aria-labelledby="importExportDropdown">
+                        <li><a class="dropdown-item" href="{% url 'export_enterprise_data' %}">Экспорт данных</a></li>
+                        <li><a class="dropdown-item" href="{% url 'import-enterprise-json' %}">Импорт JSON</a></li>
+                        <li><a class="dropdown-item" href="{% url 'import-enterprise-csv' %}">Импорт CSV</a></li>
+                    </ul>
+                </li>
+
+                <!-- Выход -->
+                <li class="nav-item">
+                    <a class="nav-link" href="#">Выйти</a>
+                </li>
+            </ul>
+
+        </div>
     </div>
+</nav>
 
-    <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+
+<div class="container mt-1">
+    {% block content %}{% endblock %}
+</div>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
         integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
         crossorigin="anonymous"></script>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/tempus-dominus/6.4.4/js/tempus-dominus.js"
-            integrity="sha512-f7lexY18doLNGU2OQhsDLO7J9KtqtE5b7BC6guXCQsDzoHuqbOOQX+n99dUUOIpXsm9PuXrS1KoThsVWDunKrQ=="
-            crossorigin="anonymous"
-            referrerpolicy="no-referrer"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tempus-dominus/6.4.4/js/tempus-dominus.js"
+        integrity="sha512-f7lexY18doLNGU2OQhsDLO7J9KtqtE5b7BC6guXCQsDzoHuqbOOQX+n99dUUOIpXsm9PuXrS1KoThsVWDunKrQ=="
+        crossorigin="anonymous"
+        referrerpolicy="no-referrer"></script>
 
-    {% block extra_scripts %}{% endblock extra_scripts %}
+{% block extra_scripts %}{% endblock extra_scripts %}
 </body>
 
 </html>
